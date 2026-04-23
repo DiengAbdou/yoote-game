@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">yoote</string>
+    <string name="title_activity_main">yoote</string>
+    <string name="package_name">com.luqq.yote</string>
+    <string name="custom_url_scheme">com.luqq.yote</string>
+</resources>
