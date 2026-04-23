@@ -1,0 +1,9 @@
+# Dépendances (Ne pas envoyer les moteurs)
+node_modules/
+
+# Dossier de compilation (Netlify le créera lui-même)
+dist/
+
+# Fichiers secrets (NE JAMAIS ENVOYER SUR GITHUB !)
+.env
+.env.*
