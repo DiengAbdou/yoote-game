@@ -509,6 +509,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
         <button class="fc-btn" id="fc-me">Je commence</button>
         <button class="fc-btn" id="fc-opp">Adversaire</button>
       </div>
+      <button class="btn outline" id="btn-fc-quit" style="margin-top:8px; border-color:var(--terra); color:var(--terra-light);">Quitter</button>
     </div>
     <div id="mo-wait" style="display:none">
       <div class="info">Le gagnant choisit qui commence...</div>
@@ -860,6 +861,14 @@ async function doSpectate(){
   addMsg(null,'Vous regardez la partie.',true);
 }
 
+function quitGame(){
+  // Si on est en ligne, on prévient l'adversaire qu'on s'en va
+  if(A.code && A.mode !== 'local' && roomChannel){
+    pushMsg('player_left', {from: A.myIdx});
+  }
+  leaveGame(); // Ensuite on quitte normalement
+}
+
 function leaveGame(){
   if(A.code && A.mode !== 'local' && roomChannel){
     clientDb.removeChannel(roomChannel);
@@ -1170,19 +1179,21 @@ function showGO(){
   $('mo-fc').style.display='none';$('mo-wait').style.display='none';$('mo-btns').innerHTML='';
   
   if(so){
-    $('mo-btns').innerHTML=`<button id="btn-mo-series" class="btn" style="flex:1;margin:0">Résultat final</button>`;
-    $('btn-mo-series').addEventListener('click', showSeriesOver);
-  }else if(A.myIdx<0){
-    $('mo-btns').innerHTML=`<button id="btn-mo-ok" class="btn outline" style="flex:1;margin:0">OK</button>`;
-    $('btn-mo-ok').addEventListener('click', () => $('ov-go').classList.remove('show'));
-  }else if(r.winner===A.myIdx || (r.winner===-1 && A.role==='host') || A.mode==='local'){
-    $('mo-fc').style.display='block';
-    $('fc-me').textContent='Je commence';
-    $('fc-opp').textContent=(s.players[1-A.myIdx]?.name||'Adversaire')+' commence';
-  }else{
-    $('mo-wait').style.display='block';
-  }
-  $('ov-go').classList.add('show');
+      $('mo-btns').innerHTML=`<button id="btn-mo-series" class="btn" style="flex:1;margin:0">Résultat final</button>`;
+      $('btn-mo-series').addEventListener('click', showSeriesOver);
+    }else if(A.myIdx<0){
+      $('mo-btns').innerHTML=`<button id="btn-mo-ok" class="btn outline" style="flex:1;margin:0">OK</button>`;
+      $('btn-mo-ok').addEventListener('click', () => $('ov-go').classList.remove('show'));
+    }else if(r.winner===A.myIdx || (r.winner===-1 && A.role==='host') || A.mode==='local'){
+      $('mo-fc').style.display='block';
+      $('fc-me').textContent='Je commence';
+      $('fc-opp').textContent=(s.players[1-A.myIdx]?.name||'Adversaire')+' commence';
+    }else{
+      $('mo-wait').style.display='block';
+      $('mo-btns').innerHTML=`<button id="btn-mo-quit" class="btn outline" style="margin-top:10px; border-color:var(--terra); color:var(--terra-light);">Quitter</button>`;
+      $('btn-mo-quit').addEventListener('click', quitGame);
+    }
+    $('ov-go').classList.add('show');
 }
 
 function chooseFirst(rel){
@@ -1225,13 +1236,13 @@ function showSeriesOver(){
     `;
     $('btn-sov-me').addEventListener('click', () => reqNewSeries(A.myIdx));
     $('btn-sov-opp').addEventListener('click', () => reqNewSeries(1-A.myIdx));
-    $('btn-sov-leave').addEventListener('click', leaveGame);
+    $('btn-sov-leave').addEventListener('click', quitGame);
   } else {
     $('sov-btns').innerHTML = `
       <div class="info" style="margin-bottom:16px;color:var(--sand)">Le champion réfléchit...</div>
       <button id="btn-sov-leave2" class="btn outline">Quitter</button>
     `;
-    $('btn-sov-leave2').addEventListener('click', leaveGame);
+    $('btn-sov-leave2').addEventListener('click', quitGame);
   }
   
   $('ov-go').classList.remove('show');
@@ -1351,7 +1362,17 @@ function handleMsg(msg){
       const sc = scoreGame(A.game, 0, 'nop');
       endGame(1, 0, sc.pts, sc.type, 'nop', null);
     }
+  }else if(msg.type === 'claim_win'){
+    if(A.role === 'host' && msg.from === 1){
+      const sc = scoreGame(A.game, 0, 'nop');
+      endGame(1, 0, sc.pts, sc.type, 'nop', null);
+    }
+  // NOUVEAU : Gérer le départ de l'adversaire
+  }else if(msg.type === 'player_left'){
+    toast("L'adversaire a quitté la partie.");
+    setTimeout(leaveGame, 2000); // Ramène à l'accueil après 2 secondes
   }
+
 }
 
 function applyActFromGuest(action){
@@ -1745,6 +1766,7 @@ $('fc-me').addEventListener('click', () => chooseFirst(0));
 $('fc-opp').addEventListener('click', () => chooseFirst(1));
 $('btn-rules-back').addEventListener('click', () => go('s-home'));
 $('btn-rules-home').addEventListener('click', () => go('s-home'));
+$('btn-fc-quit').addEventListener('click', quitGame);
 
 </script>
 </body>
