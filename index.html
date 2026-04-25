@@ -303,6 +303,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
   ⚠ Adversaire déconnecté — victoire dans <span id="disco-cd" class="disco-countdown">30</span>s
   <button id="btn-disco-claim" style="margin-left:16px;padding:4px 12px;background:var(--gold);color:var(--ink);border:none;font-family:'Cinzel',serif;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.1em;">RÉCLAMER LA VICTOIRE</button>
   <button id="btn-disco-ignore" style="margin-left:8px;padding:4px 12px;background:transparent;color:white;border:1px solid rgba(255,255,255,.4);font-family:'Cinzel',serif;font-size:11px;cursor:pointer;letter-spacing:.1em;">IGNORER</button>
+  <button onclick="leaveGame()">Quitter la partie</button>
 </div>
 
 <div id="s-home" class="screen active">
@@ -819,8 +820,27 @@ async function doJoin(){
   const { data, error } = await clientDb.from('rooms').select('*').eq('code', code).single();
   
   if (error || !data) { $('j-err').textContent='Partie introuvable.'; return; }
-  if (data.status === 'joined') { $('j-err').textContent='Cette partie est déjà pleine.'; return; }
 
+  // Si la partie est pleine, vérifier si c'est une RECONNEXION (même guest_id)
+  if (data.status === 'joined') {
+    const isMyOwnSession = myUserId && data.guest_id === myUserId;
+    if (!isMyOwnSession) {
+      $('j-err').textContent='Cette partie est déjà pleine.'; 
+      return;
+    }
+    // C'est une reconnexion : on restaure l'état sans toucher à la BDD
+    const g = data.game_state.game; 
+    g.board = fixBoard(g.board);
+    A.game = g; 
+    A.ser = data.game_state.ser;
+    $('j-err').textContent='';
+    startListening(code);
+    go('s-game'); updateUI();
+    addMsg(null, 'Reconnecté à la partie.', true);
+    return;
+  }
+
+  // Nouvelle jonction normale
   const g = data.game_state.game; 
   g.board = fixBoard(g.board);
   A.game = g; 
