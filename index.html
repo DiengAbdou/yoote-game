@@ -692,11 +692,6 @@ function fixBoard(board){
   return board.map(c => c === false ? null : c);
 }
 
-function cleanOldRoom(code){
-  setTimeout(async () => {
-    await clientDb.from('rooms').delete().eq('code', code);
-  }, 2 * 60 * 60 * 1000); 
-}
 
 function startListening(code) {
   if (roomChannel) clientDb.removeChannel(roomChannel);
@@ -783,6 +778,19 @@ async function doCreate(){
   const g = JSON.parse(JSON.stringify(A.game));
   g.board = g.board.map(c => c===null ? false : c);
 
+    // Vérifier combien de rooms actives cet utilisateur a déjà créées
+  const { count, error: countErr } = await clientDb
+    .from('rooms')
+    .select('*', { count: 'exact', head: true })
+    .eq('host_id', myUserId)
+    .eq('status', 'waiting')
+
+  if (countErr === null && count >= 3) {
+    $('c-err').textContent = 'Vous avez déjà 3 parties en attente. Attendez qu\'elles expirent.';
+    go('s-create');
+    return;
+  }
+
   const { error } = await clientDb.from('rooms').insert([{
     code: A.code,
     host_name: name,
@@ -796,7 +804,6 @@ async function doCreate(){
   
   $('lobby-st').textContent='En attente d\'un adversaire...';
   startListening(A.code);
-  cleanOldRoom(A.code);
 }
 
 async function doJoin(){
