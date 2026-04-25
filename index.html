@@ -300,10 +300,10 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 <div id="toast" class="toast"></div>
 <div id="disco-banner" class="disco-banner">
-  ⚠ Adversaire déconnecté — victoire dans <span id="disco-cd" class="disco-countdown">30</span>s
+  ⚠ Adversaire déconnecté — reconnexion possible pendant <span id="disco-cd" class="disco-countdown">60</span>s
   <button id="btn-disco-claim" style="margin-left:16px;padding:4px 12px;background:var(--gold);color:var(--ink);border:none;font-family:'Cinzel',serif;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.1em;">RÉCLAMER LA VICTOIRE</button>
   <button id="btn-disco-ignore" style="margin-left:8px;padding:4px 12px;background:transparent;color:white;border:1px solid rgba(255,255,255,.4);font-family:'Cinzel',serif;font-size:11px;cursor:pointer;letter-spacing:.1em;">IGNORER</button>
-  <button onclick="leaveGame()">Quitter la partie</button>
+  <button id="btn-disco-quit" style="margin-left:8px;padding:4px 12px;background:transparent;color:white;border:1px solid rgba(255,255,255,.4);font-family:'Cinzel',serif;font-size:11px;cursor:pointer;letter-spacing:.1em;">QUITTER</button>
 </div>
 
 <div id="s-home" class="screen active">
@@ -572,17 +572,15 @@ const clientDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let myUserId = null; // Va stocker l'ID secret du joueur
 
-async function initAuth() {
-  // On demande à Supabase une identité anonyme
-  const { data, error } = await clientDb.auth.signInAnonymously();
+// Promesse qu'on peut attendre avant de rejoindre
+const authReady = clientDb.auth.signInAnonymously().then(({ data, error }) => {
   if (data && data.user) {
     myUserId = data.user.id;
-    console.log("Connecté en tant que fantôme. Mon ID est :", myUserId);
+    console.log("Connecté. Mon ID :", myUserId);
   } else if (error) {
-    console.error("Erreur d'authentification :", error.message);
+    console.error("Erreur auth :", error.message);
   }
-}
-initAuth(); // On lance la fonction immédiatement
+});
 
 let roomChannel = null; // Gère le temps réel (WebSocket)
 
@@ -811,6 +809,9 @@ async function doJoin(){
   const name=$('j-name').value.trim(), codeVal=$('j-code').value.trim();  
   if(!name){$('j-err').textContent='Entrez votre pseudo.';return;}
   if(codeVal.length<3){$('j-err').textContent='Entrez le code.';return;}
+
+    // On s'assure que l'authentification est terminée
+  await authReady;
   
   const code = 'r' + codeVal;
   $('j-err').textContent='Connexion...';
@@ -1523,11 +1524,11 @@ function toggleMob(){
 
 let discoTimer = null;
 let discoCountdown = null;
-let discoSeconds = 30;
+let discoSeconds = 60;
 
 function startDiscoCountdown(){
-  if(discoTimer) return; 
-  discoSeconds = 30;
+  if(discoTimer) return;
+  discoSeconds = 60;
   $('disco-cd').textContent = discoSeconds;
   $('disco-banner').classList.add('show');
 
@@ -1536,16 +1537,15 @@ function startDiscoCountdown(){
     $('disco-cd').textContent = discoSeconds;
     if(discoSeconds <= 0){
       stopDiscoCountdown();
-      claimWin(); 
+      claimWin();
     }
   }, 1000);
 
-  discoTimer = setTimeout(() => {}, 31000);
+  discoTimer = true; // simple flag pour éviter les doublons
 }
 
 function stopDiscoCountdown(){
   clearInterval(discoCountdown);
-  clearTimeout(discoTimer);
   discoCountdown = null;
   discoTimer = null;
   $('disco-banner').classList.remove('show');
@@ -1729,6 +1729,8 @@ window.addEventListener('resize', ()=>{if(A.game)updateUI();});
 // --- Notifications
 $('btn-disco-claim').addEventListener('click', claimWin);
 $('btn-disco-ignore').addEventListener('click', hideDisco);
+$('btn-disco-quit').addEventListener('click', leaveGame);
+
 
 // --- Écran d'accueil
 $('btn-home-play').addEventListener('click', () => go('s-play'));
