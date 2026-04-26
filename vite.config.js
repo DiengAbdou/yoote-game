@@ -4,14 +4,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate', // Met à jour l'app automatiquement en arrière-plan
+      registerType: 'autoUpdate',
       manifest: {
         name: 'Yoté - Jeu de stratégie',
         short_name: 'Yoté',
         description: 'Le célèbre jeu de damier sénégalais',
-        theme_color: '#000000', // Change la couleur de la barre de statut du téléphone
+        theme_color: '#000000',
         background_color: '#000000',
-        display: 'standalone', // C'est ça qui enlève la barre d'adresse du navigateur !
+        display: 'standalone',
         icons: [
           {
             src: '/icon-192.png',

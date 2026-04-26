@@ -126,7 +126,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
   font-family: 'Cinzel Decorative', serif; 
   font-size: 14px; font-weight: 700; letter-spacing: .1em;
   text-transform: uppercase;
-  text-shadow: 2px 2px 0 rgba(192,72,24,0.7); /* Ombre terra-cotta */
+  text-shadow: 2px 2px 0 rgba(192,72,24,0.7); 
   cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
 }
 .home-btn::before{content:'';position:absolute;inset:0;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .25s ease;z-index:-1;}
@@ -559,9 +559,9 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
 <script type="module">
-// ==========================================
+ 
 // 1. CONFIGURATION SUPABASE
-// ==========================================
+ 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -570,7 +570,6 @@ const clientDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let myUserId = null; // Va stocker l'ID secret du joueur
 
-// Promesse qu'on peut attendre avant de rejoindre
 const authReady = clientDb.auth.signInAnonymously().then(({ data, error }) => {
   if (data && data.user) {
     myUserId = data.user.id;
@@ -648,9 +647,9 @@ const A={
   sessionId: Math.random().toString(36).substr(2, 9)
 };
 
-// ==========================================
+ 
 // 2. LOGIQUE RÉSEAU SUPABASE
-// ==========================================
+ 
 
 async function pushState() {
   if (A.mode === 'local' || !A.code || A.role !== 'host') return;
@@ -751,9 +750,9 @@ function startListening(code) {
   });
 }
 
-// ==========================================
+ 
 // 3. LOBBY & NAVIGATION
-// ==========================================
+ 
 
 async function doCreate(){
   const name = $('c-name').value.trim();
@@ -946,9 +945,9 @@ function copyCode(){
   else{const el=document.createElement('input');el.value=code;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);toast('Code copié !');}
 }
 
-// ==========================================
+ 
 // 4. MOTEUR DU JEU ET UI
-// ==========================================
+ 
 
 function pieceHTML(p,pt,size){
   size=size||'var(--cs,66px)';
@@ -1061,7 +1060,6 @@ function renderBoard(g,s,cs){
       const pp=g.board[i].p,pt=s.players[pp]?.pieceType||'stone';
       inner=pieceHTML(pp,pt,cs+'px');
     }
-    // Remplacement du onclick par l'attribut data-idx
     html+=`<div class="${cls}" data-idx="${i}">${inner}</div>`;
   }
   el.innerHTML=html;
@@ -1520,9 +1518,8 @@ function applyActFromGuest(action){
   }
 }
 
-// ==========================================
+
 // 5. CHAT ET NOTIFICATIONS
-// ==========================================
 
 function addMsg(author,text,sys){
   const r=m=>{
@@ -1551,9 +1548,7 @@ function toggleMob(){
   if(d.classList.contains('open')){A.unread=0;$('mcb-badge').style.display='none';$('chat-msgs-m').scrollTop=99999;}
 }
 
-// ==========================================
 // 6. DÉCONNEXION & VICTOIRE
-// ==========================================
 
 let discoTimer = null;
 let discoCountdown = null;
@@ -1604,9 +1599,9 @@ function stopHeartbeat(){
   stopDiscoCountdown();
 }
 
-// ============================================
+ 
 // 7. L'INTELLIGENCE ARTIFICIELLE
-// ============================================
+ 
 
 function cloneG(g) {
   return {
@@ -1642,7 +1637,6 @@ function evalB(g, botP) {
 
   let score = 0;
 
-  // 1. Différence de pions (Priorité absolue : sauver ou capturer = 1000 pts)
   score += (countP(g, botP) - countP(g, opp)) * 1000;
 
   // 2. Captures disponibles et menaces
@@ -1683,7 +1677,6 @@ function evalB(g, botP) {
     if (oStr === "P...P") score -= 60;
   }
 
-  // 4. Mobilité (Crucial quand la réserve est vide pour ne pas se retrouver bloqué)
   if (g.res[botP] === 0) {
     let botMoves = 0;
     for (let i = 0; i < 25; i++)
@@ -1794,9 +1787,9 @@ function playBot() {
   }
   // En toute fin de partie
   if (totalPiecesOnBoard <= 6 && totalInReserves === 0) {
-      DEPTH = 10; 
+      DEPTH = 11; 
   }  
-  // ----------------------------
+  
 
   actions.sort((a, b) => {
     const priority = { cap: 0, bon: 0, place: 1, move: 2 };
@@ -1807,8 +1800,6 @@ function playBot() {
   
   let bestScore = -Infinity;
   let bestAction = null;
-
-  // ANCIENNE LIGNE SUPPRIMÉE ICI (const DEPTH = 5;)
 
   for (let act of actions) {
      let cg = cloneG(g); simApply(cg, act);
@@ -1830,9 +1821,9 @@ function playBot() {
 window.addEventListener('resize', ()=>{if(A.game)updateUI();});
 
 
-// ==========================================
-// 8. ÉCOUTEURS D'ÉVÉNEMENTS (EVENT LISTENERS)
-// ==========================================
+ 
+// 8. ÉCOUTEURS D'ÉVÉNEMENTS 
+ 
 
 // --- Notifications
 $('btn-disco-quit').addEventListener('click', leaveGame);
