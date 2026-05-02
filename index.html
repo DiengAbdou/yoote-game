@@ -486,6 +486,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
     </div>
     <div class="action-bar" style="margin-top:8px">
       <button id="btn-draw" class="act-btn">Proposer nul</button>
+      <button id="btn-resync" class="act-btn">⟳ Reconnecter</button>
       <button id="btn-resign" class="act-btn danger">Abandonner</button>
     </div>
   </div>
@@ -779,6 +780,8 @@ function startListening(code) {
   roomChannel.subscribe(async (status) => {
     if (status === 'SUBSCRIBED') {
       await roomChannel.track({ role: A.role, idx: A.myIdx });
+    startResync(); // ← AJOUTER cette ligne
+
     }
   });
 }
@@ -954,7 +957,6 @@ async function doSpectate(){
 }
 
 function quitGame(){
-  // Si on est en ligne, on prévient l'adversaire qu'on s'en va
   if(A.code && A.mode !== 'local' && roomChannel){
     pushMsg('player_left', {from: A.myIdx});
   }
@@ -962,6 +964,7 @@ function quitGame(){
 }
 
 function leaveGame(){
+  stopResync(); 
   if(A.code && A.mode !== 'local' && roomChannel){
     clientDb.removeChannel(roomChannel);
     roomChannel = null;
@@ -1591,6 +1594,33 @@ function toggleMob(){
 let discoTimer = null;
 let discoCountdown = null;
 let discoSeconds = 60;
+let resyncTimer = null;
+
+async function startResync() {
+  stopResync();
+  resyncTimer = setInterval(async () => {
+    if (!A.code || A.mode === 'local' || !A.game || A.game.phase === 'done') return;
+    
+    const { data } = await clientDb.from('rooms').select('game_state').eq('code', A.code).single();
+    if (!data?.game_state?.game) return;
+    
+    const dbGame = data.game_state.game;
+    dbGame.board = fixBoard(dbGame.board);
+    
+    // Si le tour en DB diffère du tour local → on est désynchronisés
+    if (dbGame.cur !== A.game.cur || dbGame.phase !== A.game.phase) {
+      console.warn('Désynchronisation détectée, resync depuis la DB...');
+      A.game = dbGame;
+      A.ser = data.game_state.ser;
+      updateUI();
+      toast('Partie resynchronisée');
+    }
+  }, 15000); // Toutes les 15 secondes
+}
+
+function stopResync() {
+  if (resyncTimer) { clearInterval(resyncTimer); resyncTimer = null; }
+}
 
 function startDiscoCountdown(){
   if(discoTimer) return;
@@ -1865,6 +1895,17 @@ window.addEventListener('resize', ()=>{if(A.game)updateUI();});
 
 // --- Notifications
 $('btn-disco-quit').addEventListener('click', leaveGame);
+$('btn-resync').addEventListener('click', async () => {
+  if (!A.code || A.mode === 'local') return;
+  const { data } = await clientDb.from('rooms').select('game_state').eq('code', A.code).single();
+  if (!data?.game_state) { toast('Impossible de se reconnecter'); return; }
+  const g = data.game_state.game;
+  g.board = fixBoard(g.board);
+  A.game = g;
+  A.ser = data.game_state.ser;
+  updateUI();
+  toast('Partie resynchronisée !');
+});
 
 
 // --- Écran d'accueil
